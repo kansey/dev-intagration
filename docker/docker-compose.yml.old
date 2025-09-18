@@ -1,0 +1,18 @@
+version: "3.4"
+
+# Имя проекта
+name: cft-integration
+
+
+services:
+    backend-go:
+      image: cft-integration/backend-go-1.17
+      build: 
+        context: .
+        dockerfile: Dockerfile
+      volumes:
+        - ./../:/usr/src/app
+      networks:
+        default:
+          aliases:
+            - backend.host

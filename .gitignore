@@ -1,0 +1,9 @@
+.vscode
+.idea
+.env
+bin
+docker/sh/kafka-hosts.txt
+certificate-authority
+keystore
+pem
+truststore
