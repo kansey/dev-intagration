@@ -12,7 +12,7 @@
 
 
 Пыталась реализовать как в статье, т.к. там есть генерация сертификатов:
-- https://habr.com/ru/articles/810061/ (минус В представленной конфигурации настроены SASL, SSL, ACL. Много параметров и основана на KRaft)
+- https://habr.com/ru/articles/810061/ (минус В представленной конфигурации настроены SASL, SSL, ACL. Много параметров и основана на KRaft) Репозиторий: https://github.com/yubazh/kafka-compose/tree/master#
 - https://jaehyeon.me/blog/2023-07-06-kafka-development-with-docker-part-9/ (основана на zookeeper. Пока не понятно, что нам надо zookeeper или KRaft)
 
 Они основаны на сборке bitnami/kafka
@@ -39,4 +39,13 @@ make up-local-backend
 ```
 
 Долг:
+Не одаптировала под нас.
 Не разобралась с параметрами для kafka. Думаю нам надо не все эти параметры, чтоб осталось только ssl
++ создать топики
+Установить библиотеку https://github.com/twmb/franz-go/blob/v1.12.1/go.mod
+Реализовать подключение ssl
+Реализовать консьюмер по чтению сообщения из кафка
+Реализовать Процедуру по отправки сообщения в кафку
+Попробовать прифилирование написанного кода :
+Реализовать профилировании сервисов на go с помощью pprof. https://www.benburwell.com/posts/flame-graphs-for-go-with-pprof/
+Реализовать профилирование CPU, Heap, go routins. https://tproger.ru/translations/memory-leaks-investigation-in-go-using-pprof)
