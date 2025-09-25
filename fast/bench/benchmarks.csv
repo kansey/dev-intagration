@@ -1,0 +1,3 @@
+lib,elapsed_ms,alloc_mb,total_alloc_mb,sys_mb,num_gc
+sarama,3892,2.91,5.50,14.52,1
+franz,3345,0.83,3.62,14.77,1
