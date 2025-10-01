@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// BenchmarkResult — структура с результатами замеров
 type BenchmarkResult struct {
 	Library      string
 	Elapsed      time.Duration
@@ -18,7 +17,6 @@ type BenchmarkResult struct {
 	NumGC        uint32
 }
 
-// Collect собирает метрики в структуру BenchmarkResult
 func Collect(lib string, start time.Time) BenchmarkResult {
 	elapsed := time.Since(start)
 
@@ -36,7 +34,6 @@ func Collect(lib string, start time.Time) BenchmarkResult {
 	}
 }
 
-// WriteCSV пишет результат в CSV по пути, заданному через ENV
 func WriteCSV(result BenchmarkResult) {
 	path := os.Getenv("BENCHMARK_FILE")
 	if path == "" {

@@ -2,8 +2,11 @@ package producers
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"github.com/Shopify/sarama"
 	"log"
+	"os"
 	"time"
 )
 
@@ -14,13 +17,14 @@ type SaramaProducer struct {
 	cfg     *sarama.Config
 }
 
-// Конструктор
 func NewSaramaProducer(brokers []string, topic string, async bool) *SaramaProducer {
 	cfg := sarama.NewConfig()
 	cfg.Producer.RequiredAcks = sarama.WaitForAll
 	cfg.Producer.Retry.Max = 5
 	cfg.Producer.Return.Successes = true
-	cfg.ClientID = "go-sarama-producer"
+	//cfg.ClientID = "go-sarama-producer"
+
+	cfg = enableSaramaConfig(cfg)
 
 	return &SaramaProducer{
 		brokers: brokers,
@@ -30,7 +34,6 @@ func NewSaramaProducer(brokers []string, topic string, async bool) *SaramaProduc
 	}
 }
 
-// Запуск продьюсера — принимает сразу все сообщения
 func (p *SaramaProducer) Run(ctx context.Context, messages []string) error {
 	if p.async {
 		log.Println("[sarama] runAsync")
@@ -83,7 +86,7 @@ func (p *SaramaProducer) runAsync(ctx context.Context, messages []string) error 
 			select {
 			case succ := <-producer.Successes():
 				if succ != nil {
-					log.Printf("[sarama] ✅ async: topic=%s partition=%d offset=%d", succ.Topic, succ.Partition, succ.Offset)
+					//log.Printf("[sarama] ✅ async: topic=%s partition=%d offset=%d", succ.Topic, succ.Partition, succ.Offset)
 				}
 			case err := <-producer.Errors():
 				if err != nil {
@@ -103,4 +106,31 @@ func (p *SaramaProducer) runAsync(ctx context.Context, messages []string) error 
 	}
 
 	return nil
+}
+
+func enableSaramaConfig(cfg *sarama.Config) *sarama.Config {
+	cfg.Net.TLS.Enable = true
+
+	cert, err := tls.LoadX509KeyPair("../kafka/client.crt", "../kafka/client.key")
+	if err != nil {
+		log.Fatalf("Failed to load client certificate: %v", err)
+	}
+
+	caCert, err := os.ReadFile("../kafka/ca.crt")
+	if err != nil {
+		log.Fatalf("Failed to read CA certificate: %v", err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		log.Fatalf("Failed to append CA certificate")
+	}
+
+	cfg.Net.TLS.Config = &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+		//InsecureSkipVerify: true, // отключает проверку CN/SAN
+	}
+
+	return cfg
 }

@@ -6,12 +6,16 @@ WORKDIR /app
 COPY app/go.mod app/go.sum ./
 RUN go mod download
 
+#RUN go version
+
 # 2. Скопировать исходники
 #COPY app/*.go ./
 #COPY app/producers ./producers
 #COPY app/metrics ./metrics
 
 COPY app/. ./
+COPY app ../bench
+COPY app ../kafka
 
 # 3. Собрать бинарь
 RUN go build -v -o app .
@@ -23,4 +27,5 @@ WORKDIR /app
 COPY --from=builder /app/app .
 
 #CMD ["./app"]
+
 ENTRYPOINT ["./app"]

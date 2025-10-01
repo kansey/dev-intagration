@@ -2,8 +2,11 @@ package consumers
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"github.com/Shopify/sarama"
 	"log"
+	"os"
 )
 
 type SaramaConsumer struct {
@@ -27,10 +30,12 @@ func NewSaramaConsumer(brokers []string, topic, groupID string, maxMsg int) *Sar
 
 func (c *SaramaConsumer) Run(ctx context.Context) error {
 	cfg := sarama.NewConfig()
-	cfg.Version = sarama.V2_8_0_0
+	cfg.Version = sarama.MaxVersion
 	cfg.Consumer.Return.Errors = true
 	cfg.Consumer.Offsets.Initial = sarama.OffsetOldest
+	cfg.Consumer.Fetch.Max = 50 * 1024 * 1024
 
+	enableSaramaConfig(cfg)
 	group, err := sarama.NewConsumerGroup(c.brokers, c.groupID, cfg)
 	if err != nil {
 		return err
@@ -50,6 +55,8 @@ func (c *SaramaConsumer) Run(ctx context.Context) error {
 		}
 
 		if handler.msg >= handler.maxMsg {
+			log.Printf("[sarama]  msg=%d maxMsg=%d",
+				handler.msg, handler.maxMsg)
 			break
 		}
 	}
@@ -67,8 +74,8 @@ func (h *consumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error   { re
 func (h *consumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
 func (h *consumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for msg := range claim.Messages() {
-		log.Printf("[sarama] Consume message: topic=%s partition=%d offset=%d value=%s",
-			msg.Topic, msg.Partition, msg.Offset, string(msg.Value))
+		//log.Printf("[sarama] Consume message: topic=%s partition=%d offset=%d value=%s",
+		//	msg.Topic, msg.Partition, msg.Offset, string(msg.Value))
 		sess.MarkMessage(msg, "")
 		h.msg++
 
@@ -77,4 +84,31 @@ func (h *consumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, cl
 		}
 	}
 	return nil
+}
+
+func enableSaramaConfig(cfg *sarama.Config) *sarama.Config {
+	cfg.Net.TLS.Enable = true
+
+	cert, err := tls.LoadX509KeyPair("../kafka/client.crt", "../kafka/client.key")
+	if err != nil {
+		log.Fatalf("Failed to load client certificate: %v", err)
+	}
+
+	caCert, err := os.ReadFile("../kafka/ca.crt")
+	if err != nil {
+		log.Fatalf("Failed to read CA certificate: %v", err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		log.Fatalf("Failed to append CA certificate")
+	}
+
+	cfg.Net.TLS.Config = &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caCertPool,
+		//InsecureSkipVerify: true, // отключает проверку CN/SAN
+	}
+
+	return cfg
 }

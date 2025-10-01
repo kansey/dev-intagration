@@ -24,7 +24,33 @@ docker compose up client
 | KAFKA_RUN_CONSUMER                                               | true                     | Запускать ли consumer             | 
 | BENCHMARK_FILE                                                   | ../bench/benchmarks.csv  | Путь к файлу для сбора метирк     |     
 
+## Структура проекта
+``
+# Проект
+
+## Структура проекта
+
+- [app](./app)
+- [bench](./bench)
+    - [plot.py](./bench/plot.py)
+    - [README.md](./bench/README.md)
+- [docker-compose.yml](./docker-compose.yml)
+- [kafka](./kafka)
+    - [cert-gen.sh](./kafka/cert-gen.sh)
+    - [README.md](./kafka/README.md)
+- [README.md](./README.md)
+
+```
+app - код приложения
+bench - сбор и отображение метрик
+kafka - сертификаты ssl
+```
+
 ## Особенности эксплуатации
+
+### Генерация ssl сертификатов
+
+Перед первым запуском необходимо выполнить скрипт из [документации](kafka/README.md).
 ### Сбор метрик
 
 1. Убедиться что файл benchmarks.csv пустой

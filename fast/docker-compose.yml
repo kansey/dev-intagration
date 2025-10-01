@@ -17,15 +17,45 @@ services:
     depends_on:
       - zookeeper
     environment:
+#      KAFKA_BROKER_ID: 1
+#      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#      KAFKA_LISTENERS: PLAINTEXT://:9092
+#      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+#      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+
+      # Слушатели
+      KAFKA_LISTENERS: PLAINTEXT://:9092,SSL://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,SSL://kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SSL:SSL
+
+      # SSL сертификаты
+      KAFKA_SSL_KEYFILE: /certs/client.key
+      KAFKA_SSL_CERTFILE: /certs/client.crt
+      KAFKA_SSL_CRLFILE: ""
+      KAFKA_SSL_PASSWORD: ""
+      KAFKA_SSL_KEYSTORE_FILENAME: kafka.keystore.jks
+      KAFKA_SSL_TRUSTSTORE_FILENAME: kafka.truststore.jks
+      KAFKA_SSL_CLIENT_AUTH: required
+      KAFKA_CFG_LISTENERS: SSL://:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: SSL://kafka:9093
+      KAFKA_CFG_SECURITY_INTER_BROKER_PROTOCOL: SSL
+      KAFKA_CFG_SSL_KEYSTORE_LOCATION: /bitnami/kafka/config/certs/kafka.keystore.jks
+      KAFKA_CFG_SSL_KEYSTORE_PASSWORD: developer
+      KAFKA_CFG_SSL_KEY_PASSWORD: developer
+      KAFKA_CFG_SSL_TRUSTSTORE_LOCATION: /bitnami/kafka/config/certs/kafka.truststore.jks
+      KAFKA_CFG_SSL_TRUSTSTORE_PASSWORD: developer
+      KAFKA_CFG_SSL_CLIENT_AUTH: required
+
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - ./kafka:/bitnami/kafka/config/certs:ro
     networks:
       - app-net
     ports:
       - "9092:9092" # чтобы Kafka была доступна с хоста
+      - "9093:9093" # SSL
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -53,12 +83,13 @@ services:
     networks:
       - app-net
     environment:
-      - KAFKA_BROKERS=kafka:9092  # так твое Go-приложение сможет подключаться
+      - KAFKA_BROKERS=kafka:9093  # так твое Go-приложение сможет подключаться
     tty: true
     stdin_open: true
     command: [ "/bin/sh" ]
     volumes:
       - ./bench:/bench
+      - ./kafka:/kafka
     #command: ["./app"]  # если нужно переопределить CMD
 networks:
   app-net:

@@ -62,7 +62,6 @@ func main() {
 	}
 
 	elapsed := time.Since(start)
-
 	// --- метрики памяти ---
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
@@ -103,22 +102,20 @@ func main() {
 		}
 
 		elapsed = time.Since(start)
+		//var m2 runtime.MemStats
+		runtime.ReadMemStats(&m)
 
-		// Alloc       – текущий объём памяти в куче (что реально используется)
-		// TotalAlloc  – сколько памяти всего выделялось за время работы (счётчик)
-		// Sys         – память, выделенная у ОС (включая резервы)
-		// NumGC       – количество срабатываний GC
 		log.Printf("⏱ Время выполнения: %s", elapsed)
 		log.Printf("💾 Память: Alloc = %.2f MB, TotalAlloc = %.2f MB, Sys = %.2f MB, NumGC = %d",
 			float64(m.Alloc)/1024/1024,
 			float64(m.TotalAlloc)/1024/1024,
 			float64(m.Sys)/1024/1024,
 			m.NumGC)
-
-		// собираем и пишем метрики
-		result := metrics.Collect(lib, start)
-		metrics.WriteCSV(result)
-
-		log.Printf("Замеры записаны в файл (lib=%s)", lib)
 	}
+
+	// собираем и пишем метрики
+	result := metrics.Collect(lib, start)
+	metrics.WriteCSV(result)
+
+	log.Printf("Замеры записаны в файл (lib=%s)", lib)
 }

@@ -2,9 +2,12 @@ package producers
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"log"
+	"os"
 	"sync"
 )
 
@@ -19,6 +22,7 @@ func NewFranzProducer(brokers []string, topic string, async bool) *FranzProducer
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(brokers...),
 		kgo.AllowAutoTopicCreation(),
+		kgo.DialTLSConfig(enableTlsConfig()),
 	}
 
 	client, err := kgo.NewClient(opts...)
@@ -35,16 +39,23 @@ func NewFranzProducer(brokers []string, topic string, async bool) *FranzProducer
 }
 
 func (p *FranzProducer) Run(ctx context.Context, messages []string) error {
+	defer p.client.Close()
+
+	err := p.connect(ctx)
+	if err != nil {
+		return err
+	}
+
 	if p.async {
 		log.Println("[franz-go] runAsync")
 		err := p.runAsync(ctx, messages)
-		p.client.Close()
+
 		return err
 	}
 
 	log.Println("[franz-go] runSync")
-	err := p.runSync(ctx, messages)
-	// p.client.Close()  // закрывать после отправки можно по ситуации
+	err = p.runSync(ctx, messages)
+
 	return err
 }
 
@@ -76,7 +87,7 @@ func (p *FranzProducer) runAsync(ctx context.Context, messages []string) error {
 			if err != nil {
 				errs <- fmt.Errorf("ошибка асинхронной отправки: %w", err)
 			} else {
-				log.Printf("[franz-go] ✅ Отправлено async: %s", msg)
+				//log.Printf("[franz-go] ✅ Отправлено async: %s", msg)
 			}
 		})
 	}
@@ -88,4 +99,37 @@ func (p *FranzProducer) runAsync(ctx context.Context, messages []string) error {
 		return <-errs
 	}
 	return nil
+}
+
+func (p *FranzProducer) connect(ctx context.Context) error {
+	err := p.client.Ping(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func enableTlsConfig() *tls.Config {
+	caCert, err := os.ReadFile("../kafka/ca.crt")
+	if err != nil {
+		log.Fatalf("Failed to read CA certificate: %v", err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		log.Fatalf("Failed to append CA certificate")
+	}
+
+	clientCert, err := tls.LoadX509KeyPair("../kafka/client.crt", "../kafka/client.key")
+	if err != nil {
+		log.Fatalf("Failed to load client cert/key: %v", err)
+	}
+
+	return &tls.Config{
+		RootCAs:      caCertPool,
+		Certificates: []tls.Certificate{clientCert},
+		MinVersion:   tls.VersionTLS12,
+		//InsecureSkipVerify: true,
+	}
 }
